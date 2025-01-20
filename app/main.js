@@ -17,6 +17,10 @@ switch (command) {
 		const hashed = process.argv[4];
 		catFile(hashed);
 		break;
+	case 'ls-tree':
+		const tree = process.argv[3];
+		lsTree(tree);
+		break;
 	default:
 		throw new Error(`Unknown command ${command}`);
 }
@@ -62,4 +66,23 @@ function catFile(hash) {
 	process.stdout.write(result);
 }
 
-function lsTree() {}
+function lsTree(tree) {
+	if (tree == '--name-only') {
+		const sha = process.argv[4]; // git ls-tree --name-only <sha>
+		const dir = sha.slice(0, 2); // first two characters of the sha
+		const file = sha.slice(2); // remaining characters of the sha
+
+		const PATH = path.join(process.cwd(), '.git', 'objects', dir, file); // path to the file
+
+		// read the file and split it by null byte
+		const unzipped = zlib.inflateSync(fs.readFileSync(PATH)).toString().split('\0');
+
+		// exclude the first element and filter the elements that contain a space
+		const content = unzipped
+			.slice(1)
+			.filter((val) => val.includes(' '))
+			.map((val) => val.split(' ')[1]);
+
+		content.forEach((val) => process.stdout.write(val + '\n'));
+	}
+}
